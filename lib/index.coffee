@@ -23,7 +23,10 @@ uuid = ->
 
 class EPub
   constructor: (options, output)->
-    @options = options
+    @options = _.extend {
+      includeToc: true  # 默认为true，生成目录
+# 其他选项...
+    }, options
     self = @
     @defer = new Q.defer()
 
@@ -218,7 +221,7 @@ class EPub
     fs.writeFileSync( "#{@uuid}/META-INF/container.xml", """<?xml version="1.0" encoding="UTF-8" ?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>""")
 
     if self.options.version is 2
-      # write meta-inf/com.apple.ibooks.display-options.xml [from pedrosanta:xhtml#6]
+# write meta-inf/com.apple.ibooks.display-options.xml [from pedrosanta:xhtml#6]
       fs.writeFileSync "#{@uuid}/META-INF/com.apple.ibooks.display-options.xml", """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <display_options>
@@ -245,12 +248,13 @@ class EPub
 
     Q.all([
       Q.nfcall ejs.renderFile, opfPath, self.options
-      Q.nfcall ejs.renderFile, ncxTocPath, self.options
-      Q.nfcall ejs.renderFile, htmlTocPath, self.options
+      if self.options.includeToc then Q.nfcall ejs.renderFile, ncxTocPath, self.options
+      if self.options.includeToc then Q.nfcall ejs.renderFile, htmlTocPath, self.options
     ]).spread (data1, data2, data3)->
       fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/content.opf"), data1)
-      fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/toc.ncx"), data2)
-      fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3)
+      if self.options.includeToc
+        fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/toc.ncx"), data2)
+        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3)
       generateDefer.resolve()
     , (err)->
       console.error arguments
@@ -325,17 +329,17 @@ class EPub
       _.each self.options.images, (image)->
         deferArray.push self.downloadImage(image)
       Q.all deferArray
-      .fin ()->
-        imgDefer.resolve()
+        .fin ()->
+      imgDefer.resolve()
     imgDefer.promise
 
   genEpub: ()->
-    # Thanks to Paul Bradley
-    # http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
-    # Web Archive URL:
-    # http://web.archive.org/web/20150521053611/http://www.bradleymedia.org/gzip-markdown-epub
-    # or Gist:
-    # https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
+# Thanks to Paul Bradley
+# http://www.bradleymedia.org/gzip-markdown-epub/ (404 as of 28.07.2016)
+# Web Archive URL:
+# http://web.archive.org/web/20150521053611/http://www.bradleymedia.org/gzip-markdown-epub
+# or Gist:
+# https://gist.github.com/cyrilis/8d48eef37fbc108869ac32eb3ef97bca
 
     genDefer = new Q.defer()
 
