@@ -143,8 +143,8 @@ class EPub
           extension = image.extension
         else
           id = uuid()
-          mediaType = mime.getType url.replace /\?.*/, ""
-          extension = mime.getExtension mediaType
+          mediaType = mime.getType(url.replace(/\?.*/, "")) || "image/jpeg" # 设置默认 MIME 类型为 image/jpeg
+          extension = mime.getExtension(mediaType) || "jpg" # 如果无法获取扩展名， 默认设置为 jpg
           dir = content.dir
           self.options.images.push {id, url, dir, mediaType, extension}
         $(elem).attr("src", "images/#{id}.#{extension}")
